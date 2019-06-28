@@ -2,7 +2,10 @@
 """
 Created on Fri Sep 21 16:52:20 2018
 
-@author: e15
+@author: jcpaniaguas
+
+Desc: estudio de las técnicas posibles para encontrar el folio en la imagen (ORB,findContours,Hough)
+y elección de ORB como mejor opción
 """
 
 import cv2
