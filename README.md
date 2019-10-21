@@ -12,5 +12,7 @@ Para la ejecución:
 Mejoras:
 
 1- Diferenciar la muestra para que las imagenes de entrenamiento (dirFotos) y de prueba (Muestra) no sean las mismas
+
 2- Ampliar el algoritmo para que estime donde pueden estar las esquinas en el caso de que encuentre <4 esquinas correctas
+
 3- El algoritmo tarda en dibujar las lineas (a mayor número de kp_postcriba más tarda), ¿puede haber una mejor manera de encontrar las líneas válidas?
