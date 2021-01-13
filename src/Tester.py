@@ -1,5 +1,10 @@
 # @author: jcpaniaguas
 from DrawingTool import DrawingTool as dt
+from Analyzer import Analyzer
+import pickle
+import cv2
+import os
+import numpy as np
 
 
 class Tester:
@@ -12,9 +17,14 @@ class Tester:
 
     IMG_H_VIEW = 960
     IMG_W_VIEW = 540
-    KP_RANGE = 10
+    KP_RANGE = 2
     COTA_MAX_STDR = 200
     COTA_MIN_STDR = 130
+    MAX_IMAGEN = 255
+    MIN_IMAGEN = 0
+    ORB_HARRIS_SCORE = 1.3
+    ORB_FAST_SCORE = 4
+    MAT_SIZE = 100
 
     def __init__(self, bd):
         """Constructor de la clase Tester.
@@ -22,7 +32,6 @@ class Tester:
         Args:
             bd ([str]): Archivo .pkl con el entrenamiento realizado.
         """
-        import pickle
         self.bd = bd
         archivo = open(bd, 'rb')
         self.entrenamiento = pickle.load(archivo)
@@ -41,10 +50,13 @@ class Tester:
                 self.kp_entrenados.append(kp)
                 self.des_entrenados.append(des)
 
-    def localizar(self, path, nkp=500, cota_min=130, cota_max=250, dif=10):
+    def localizar(self, path, nkp=250, cota_min=130, cota_max=220, dif=2):
         """Función principal de la clase. Intenta localizar el folio en la imagen
         dependiendo de si ingresa un path con la localización de una imagen
         o de un directorio de imágenes.
+        Va a buscar las coincidencias con una base de datos entrenados. Para ello,
+        realiza una serie de umbralizaciones en la imagen a comparar, que van de 
+        la cota_max a la cota_min con una diferencia de dif menos en cada iteración.
 
         Args:
             path ([str]): Path donde se localiza la imagen o el directorio de imágenes a analizar.
@@ -53,7 +65,8 @@ class Tester:
             cota_max ([int]): Cota superior. Por defecto a 250.
             dif ([int]): Cuanto se le va a restar a la cota_max para que disminuya en cada iteración hasta la cota_min. Por defecto a 10.
         """
-        import os
+        self.analizador = Analyzer('Analyzer.csv',[path])
+        self.orb = cv2.ORB_create(nkp, self.ORB_HARRIS_SCORE, self.ORB_FAST_SCORE)
         if os.path.isdir(path):
             print("Introdujo el directorio", path)
             self.__localizar_dir(path, nkp, cota_min, cota_max, dif)
@@ -63,6 +76,7 @@ class Tester:
             self.__localizar_archivo(path, archivo, nkp, cota_min, cota_max, dif)
         else:
             print("Debe introducir un directorio o un archivo")
+        self.analizador.porcentaje_acierto(self.bd.split('/')[-1])
 
     def __localizar_dir(self, path, nkp, cota_min, cota_max, dif):
         """Cuando el path indicado en la función localizar es un directorio
@@ -76,10 +90,13 @@ class Tester:
             cota_max ([int]): Cota superior.
             dif ([int]): Cuanto se le va a restar a la cota_max para que disminuya en cada iteración hasta la cota_min.
         """
-        import os
         archivos = os.listdir(path)
-        for archivo in archivos:
+        for idx,archivo in enumerate(archivos):
             self.__localizar_archivo(path, archivo, nkp, cota_min, cota_max, dif)
+            """
+            if idx == 2:
+                break
+            """
 
     def __localizar_archivo(self, path, archivo, nkp, cota_min, cota_max, dif):
         """Cuando el path indicado en la función localizar correspondia a una imagen
@@ -93,14 +110,62 @@ class Tester:
             cota_max ([int]): Cota superior.
             dif ([int]): Cuanto se le va a restar a la cota_max para que disminuya en cada iteración hasta la cota_min.
         """
-        import cv2
         print(path+archivo)
         img = cv2.imread(path+'/'+archivo, 0)
         img = cv2.resize(img, (self.IMG_H_VIEW, self.IMG_W_VIEW))
         self.__desempaquetar()
-        self.__coincidencias(img, archivo, nkp, cota_min, cota_max, dif)
+        #"""
+        #Versión 1: median blur y dilatar 
+        kernel = np.ones((2,2), np.uint8)
+        img = cv2.medianBlur(img,25)
+        #dt.mostrar_imagen(img, archivo+" - Median") 
+        img = cv2.dilate(img, kernel, iterations=5)
+        #dt.mostrar_imagen(img, archivo+" - Dilate")
+        coincidencias = self.__coincidencias(img, archivo, nkp, cota_min, cota_max, dif)
+        #"""
+        """
+        #Versión 2: median blur
+        median = cv2.medianBlur(img,25)
+        dt.mostrar_imagen(median, archivo)
+        coincidencias = self.__coincidencias(median, archivo, nkp, cota_min, cota_max, dif)
+        """
+        #dt.mostrar_imagen(img, archivo)
+        ###
+        #coincidencias = self.__coincidencias(img, archivo, nkp, cota_min, cota_max, dif)
+        #mostrar final
+        dt.mostrar_imagen(img, archivo, {archivo: [(i[0],i[1]) for i in coincidencias[archivo]]})
+        self.__analizar_resultado(archivo)
+        from_C = coincidencias[archivo]
+        to_C = np.float32([[0, 0],[self.IMG_W_VIEW, 0],[0, self.IMG_H_VIEW],[self.IMG_W_VIEW,self.IMG_H_VIEW]])
+        dt.transformar_perspectiva(img, archivo, from_C, to_C)
 
-    def __localizar_kp(self, nkp, punt, archivo, img, puntuaciones):
+    def __analizar_resultado(self, archivo):
+        """.
+
+        Args:
+            archivo ([str]): Nombre de la imagen actual.
+        """
+        print("¿Se ha encontrado el folio?: S/N")
+        respuesta = True
+        dato = ""
+        while respuesta:
+            dato = input()
+            if dato in ['s','S','n','N']:
+                dato = dato.upper()     
+                respuesta = False
+            else:
+                print("Debe introducir: S/N")
+        """
+        Analizador: 
+            insertar(self,foto_referencia,origen,contenido) -> 
+            foto_referencia = archivo
+            origen = self.bd
+            contenido = dato
+        """
+        self.analizador.insertar(archivo, self.bd.split('/')[-1], dato)
+
+
+    def __localizar_kp(self, nkp, punt, archivo, img):
         """Umbraliza la imagen para localizar las coincidencias con el entrenamiento y
         actualizar las puntuaciones.
 
@@ -109,16 +174,14 @@ class Tester:
             punt ([int]): Cota del umbralizado.
             archivo ([str]): Nombre de la imagen.
             img ([numpy.ndarray]): Imagen actual.
-            puntuaciones ([dict]): Diccionario que lleva las puntuaciones cuantas veces un keypoint.
-            se localiza en un sitio. La key es la coordenada del keypoint y el valor las veces encontrado.
         """
-        import cv2
-        orb = cv2.ORB_create(nkp, 1.3, 4)
-        ret, thresh = cv2.threshold(img.copy(), punt, 255, cv2.THRESH_BINARY)
-        kp = orb.detect(thresh, None)
-        kp, des = orb.compute(thresh, kp)
+        ret, thresh = cv2.threshold(img.copy(), punt, self.MAX_IMAGEN, cv2.THRESH_BINARY)
+        kp = self.orb.detect(thresh, None)
+        kp, des = self.orb.compute(thresh, kp)
+        #dt.mostrar_kp(img,archivo+" (prematches)",kp)
         matches = self.__encontrar_matches(des)
-        self.__puntuar_matches(kp, matches, puntuaciones)
+        #dt.mostrar_matches(img,archivo+" (postmatches)",kp,matches)
+        self.__puntuar_matches(kp, matches)
 
     def __encontrar_esquinas(self, puntuaciones):
         """Ordena según las coordenadas entrantes las esquinas del folio.
@@ -129,12 +192,12 @@ class Tester:
         Returns:
             [numpy.array]: Las cuatro coordenadas asignadas a las cuatro esquinas del folio. 
         """
-        import numpy as np
         A = puntuaciones[0][0]
         B = puntuaciones[1][0]
         C = puntuaciones[2][0]
         D = puntuaciones[3][0]
         coords = [A, B, C, D]
+        #dt.mostrar_imagen(img, archivo, puntos=[], circulos=True)
         coords = sorted(coords)
         if coords[0][1] <= coords[1][1]:
             A = coords[0]
@@ -151,29 +214,34 @@ class Tester:
             B = coords[3]
         return np.float32([A, B, C, D])
 
-    def __cribar_puntuaciones(self, puntuaciones):
-        """Va a actualizar las puntuaciones del diccionario puntuaciones entendiendo cada coordenadas
+    def __maximas_puntuaciones(self):
+        """Va a actualizar las puntuaciones del diccionario dic_puntuaciones entendiendo cada coordenadas
         a una distancia de KP_RANGE como iguales.
-
-        Args:
-            puntuaciones ([dict]): Diccionario que lleva las puntuaciones cuantas veces un keypoint.
 
         Returns:
             [[((float,float),int)]]: Lista ordenada de tuplas con las coordenadas y las veces 
             que las encontramos en la imagen.
         """
-        punt_list = list(puntuaciones.keys())
-        for idx1,(x_actual, y_actual) in enumerate(punt_list):
+        sort_puntuaciones = sorted(self.dic_puntuaciones.items(), key=lambda x: x[1], reverse=True)
+        new_sort_punt = list()
+        for idx1,tupla1 in enumerate(sort_puntuaciones):
             idx2 = 0
-            for (x_sig, y_sig) in punt_list[idx2+idx1+1:]: 
-                if (abs(x_actual - x_sig) < self.KP_RANGE) & (abs(y_actual - y_sig) < self.KP_RANGE):
-                    puntuaciones[(x_actual,y_actual)] += 1
-                    del puntuaciones[(x_sig,y_sig)]
-                    del punt_list[idx1+idx2+1]
+            ((x1,y1),_) = tupla1
+            for tupla2 in sort_puntuaciones[idx2+idx1+1:]:
+                ((x2,y2),p2) = tupla2
+                if (abs(x1-x2) <= self.KP_RANGE) & (abs(y1-y2) <= self.KP_RANGE):
+                    self.dic_puntuaciones[(x1,y1)] += p2
+                    del self.dic_puntuaciones[(x2,y2)]
+                    del sort_puntuaciones[idx1+idx2+1]
                 else:
                     idx2 += 1
-        puntuaciones = sorted(puntuaciones.items(), key=lambda x: x[1], reverse=True)
-        return puntuaciones
+        sort_puntuaciones = sorted(self.dic_puntuaciones.items(), key=lambda x: x[1], reverse=True)
+        for (coord,punt) in sort_puntuaciones:
+            (x,y) = (int(coord[0]),int(coord[1]))
+            trans_x = int((self.IMG_H_VIEW*x)/self.MAT_SIZE)
+            trans_y = int((self.IMG_W_VIEW*y)/self.MAT_SIZE)
+            new_sort_punt.append( ((trans_x,trans_y),punt) )
+        return new_sort_punt
 
     def __encontrar_matches(self, des):
         """Se van a buscar coincidencias entre la imagen actual y el entrenamiento.
@@ -184,8 +252,6 @@ class Tester:
         Returns:
             [[DMatch]]: Las coincidencias encontradas.
         """
-        import numpy as np
-        import cv2
         # para la comparacion se transforma el array de descriptores en un numpy array
         self.des_entrenados = np.array(self.des_entrenados)
         # busqueda de coincidencias con BruteForceMatcher
@@ -194,26 +260,30 @@ class Tester:
         matches = sorted(matches, key=lambda x: x.distance)
         return matches
 
-    def __puntuar_matches(self, kp, matches, puntuaciones):
+    def __puntuar_matches(self, kp, matches):
         """Se va a encargar de calcular las puntuaciones. 
 
         Args:
             kp ([[Keypoint]]): Keypoints de la imagen.
             matches ([[DMatch]]): Las coincidencias encontradas en la imagen.
-            puntuaciones ([dict]): Diccionario que lleva las puntuaciones cuantas veces un keypoint.
         """
         for idx, match in enumerate(matches):
             posible_esq = kp[match.queryIdx]
             posible_esq_x = "{0:.2f}".format(round(posible_esq.pt[0]))
             posible_esq_y = "{0:.2f}".format(round(posible_esq.pt[1]))
             coord = (float(posible_esq_x), float(posible_esq_y))
-            if coord in puntuaciones:
-                contador = puntuaciones.get(coord)
-                contador += 1
-                puntuaciones.update({coord: contador})
-            else:
-                puntuaciones.update({coord: 1})
-
+            self.__coord_a_puntuacion(coord)
+    
+    def __coord_a_puntuacion(self,coord):
+        (x,y) = (int(coord[0]),int(coord[1]))
+        transf_x = int((x/self.IMG_H_VIEW)*self.MAT_SIZE)
+        transf_y = int((y/self.IMG_W_VIEW)*self.MAT_SIZE)
+        self.matriz_puntuaciones[transf_x][transf_y] += 1
+        if (transf_x,transf_y) in self.dic_puntuaciones:
+            self.dic_puntuaciones[(transf_x,transf_y)] += 1
+        else:
+            self.dic_puntuaciones[(transf_x,transf_y)] = 1
+    
     def __coincidencias(self, img, archivo, nkp, cota_min, cota_max, dif):
         """Guardara la puntuacion de cuantos votos tiene cada punto de la imagen
         para ser una esquina y la muestra.
@@ -230,25 +300,30 @@ class Tester:
             [dict]: Diccionario con el nombre de la foto como key y las cuatro esquinas ordenadas
             como valor.
         """
-        import cv2
-        import numpy as np
-        puntuaciones = dict()
-        cota_max = cota_max if cota_max < 256 else self.COTA_MAX_STDR
-        cota_min = cota_min if cota_min >= 0 else self.COTA_MIN_STDR
+        self.dic_puntuaciones = dict()
+        self.matriz_puntuaciones = np.zeros((self.MAT_SIZE,self.MAT_SIZE))
+        cota_max = cota_max if cota_max <= self.MAX_IMAGEN else self.COTA_MAX_STDR
+        cota_min = cota_min if cota_min >= self.MIN_IMAGEN else self.COTA_MIN_STDR
         punt = cota_max
         while ((cota_min <= punt)and(punt <= cota_max)):
-            self.__localizar_kp(nkp,punt,archivo,img,puntuaciones)
+            self.__localizar_kp(nkp,punt,archivo,img)
             punt = punt - dif
 
-        puntuaciones = self.__cribar_puntuaciones(puntuaciones)
+        puntuaciones = self.__maximas_puntuaciones()
+        if len(puntuaciones) == 0:
+            print("No se ha encontrado ninguna esquina")
+            return -1
         puntos = {archivo: [puntuaciones[0][0],puntuaciones[1][0],puntuaciones[2][0],puntuaciones[3][0]]}
-        dt.mostrar_imagen(img, archivo, puntos)
+        #dt.mostrar_imagen(img, archivo, puntos)
         from_C = self.__encontrar_esquinas(puntuaciones[:4])
-        to_C = np.float32([[0, 0],[self.IMG_W_VIEW, 0],[0, self.IMG_H_VIEW],[self.IMG_W_VIEW,self.IMG_H_VIEW]])
-        dt.transformar_perspectiva(img, archivo, from_C, to_C)
+        #to_C = np.float32([[0, 0],[self.IMG_W_VIEW, 0],[0, self.IMG_H_VIEW],[self.IMG_W_VIEW,self.IMG_H_VIEW]])
+        #dt.mostrar_imagen(img, archivo, {archivo: [(i[0],i[1]) for i in from_C]})
+        #dt.transformar_perspectiva(img, archivo, from_C, to_C)
         return {archivo:from_C}
 
 
-tester = Tester("./bd_training.pkl")
+tester = Tester("./bd/bd_training_75_fotos_v1.pkl")
+tester.localizar("./img/training/")
 tester.localizar("./img/testing/")
-tester.localizar("./img/testing/2stickies.jpg")
+#tester.localizar("./img/testing/2stickies.jpg")
+#tester.localizar("./img/training/IMG_7160.JPG")
