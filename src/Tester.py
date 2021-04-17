@@ -18,6 +18,7 @@ class Tester:
     ORB_EDGE_THRESHOLD = 7
     ORB_SCALE_FACTOR = 1.5
     ORB_NLEVELS = 15
+    RESIZE = (1700,1700)
     KP_RANGE = 200
     DIST_PAR = 300
     ANG_MAX = 120
@@ -84,6 +85,9 @@ class Tester:
             archivo ([str]): Nombre de la imagen actual.
         """
         img = cv2.imread(path+'/'+archivo, 0)
+        if not (img.shape == self.RESIZE):
+                img = cv2.resize(img,self.RESIZE)
+                print("Imagen redimensionada a ",img.shape)
         self.__desempaquetar()
         self.dic_puntuaciones = dict()
     

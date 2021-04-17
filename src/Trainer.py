@@ -17,6 +17,7 @@ class Trainer:
     ORB_EDGE_THRESHOLD = 7
     ORB_SCALE_FACTOR = 1.5
     ORB_NLEVELS = 15
+    RESIZE = (1700,1700)
 
 
     def __init__(self, directorio, csv_puntos, rango=-1):
@@ -104,6 +105,9 @@ class Trainer:
             print(pos_actual)
             archivo = archivos[pos_actual]
             img = cv2.imread(self.dir + archivo, 0)
+            if not (img.shape == self.RESIZE):
+                img = cv2.resize(img,self.RESIZE)
+                print("Imagen redimensionada a ",img.shape)
 
             i90 = np.rot90(img)
             i180 = np.rot90(img,2)
