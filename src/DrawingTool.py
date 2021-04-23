@@ -1,77 +1,76 @@
 # @author: jcpaniaguas
+from ParallelogramTool import ParallelogramTool as plg
 import cv2
 import math
 import numpy as np
 
 class DrawingTool:
-    """Clase de apoyo para mostrar directamente la imagen
-    con los puntos o los keypoints dibujados. 
+    """Support class with drawing functions. 
     """
 
     @staticmethod
-    def dibujar_puntos(puntos, img, archivo,radio=20,grosor=1,color=(255,0,0)):
-        """Dibuja los puntos en la imagen 
+    def draw_points(points, img, radio=20,thickness=1,color=(255,0,0)):
+        """Draw the points on the image.
 
         Args:
-            puntos ([dict([(int,int)])]): Diccionario cuya key es el nombre de la imagen y cuyos values son los puntos
-            que se consideran esquinas
-            img ([numpy.ndarray]): Imagen en la que se van a dibujar los puntos
-            archivo ([str]): Nombre de la imagen que se va a mostrar
+            points ([dict([(int,int)])]): Dictionary whose key is the name of the image and 
+            whose values are the points that are considered corners.
+            img ([numpy.ndarray]): Image on which the points are to be drawn.
 
         Returns:
-            [numpy.ndarray]: Imagen con los puntos dibujados
+            [numpy.ndarray]: Image with points drawn.
         """
-        img_copia = img.copy()
-        p = puntos if(type(puntos) == type(list())) else puntos[archivo]
-        for x, y in p:
-            img_copia = cv2.circle(img_copia, (int(x), int(
-                y)), radius=radio, thickness=grosor, color=color)
-        return img_copia
+        img_copy = img.copy()
+        for x, y in points:
+            img_copy = cv2.circle(img_copy,(int(x),int(y)), radius=radio, thickness=thickness, color=color)
+        return img_copy
 
     @staticmethod
-    def mostrar_matches(img, archivo, kp, matches):
-        puntos = []
+    def show_matches(img, kp, matches):
+        """Draw the matches on the image.
+
+        Args:
+            img ([numpy.ndarray]): Image on which the matches are to be drawn.
+            kp ([[Keypoint]]): Keypoints of the new image.
+            matches ([[DMatch]]): Matches between trained and current image descriptors.
+
+        Returns:
+            [numpy.ndarray]: Image with matches drawn.
+        """
+        points = []
         for m in matches:
-            puntos.append(kp[m.queryIdx])
-        return cv2.drawKeypoints(img, puntos, None, color=(255,0,0), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            points.append(kp[m.queryIdx])
+        return cv2.drawKeypoints(img, points, None, color=(255,0,0), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
     @staticmethod
-    def transformar_perspectiva(img, archivo, desde_esq, hasta_esq, tamaño=(540,960)):
-        """Muestra la transformación de una imagen con 
-        perspectiva a una en 2D
+    def transform_perspective(img, from_points, to_points, tamaño=(540,960)):
+        """Displays the transformation from a perspective image to a 2D image.
 
         Args:
-            img ([numpy.ndarray]): Imagen que se va a mostrar
-            archivo ([str]): Nombre de la imagen que se va a mostrar
-            desde_esq ([numpy.ndarray]): Numpy array con las cuatro esquinas actuales
-            hasta_esq ([numpy.ndarray]): Numpy array con las cuatro esquinas a conseguir
-        """
-        desde_esq = DrawingTool.__ordenar_origen(desde_esq)
-        M = cv2.getPerspectiveTransform(desde_esq, hasta_esq)
-        transformado = cv2.warpPerspective(img, M, tamaño)
-        cv2.imshow("Transformado",transformado)
-        cv2.waitKey()
-        cv2.destroyAllWindows()
-
-    def __ordenar_origen(desde_esq):
-        """Función que analiza la distancia desde el primer punto A (esquina arriba-izq) al
-        punto B (arriba-der) y C (abajo-izq) para que la transformación sea la adecuada.
-        En el caso de que el lado más largo fuese el A-B querrá decir que el folio está 
-        de lado a la cámara y habría que variar el orden de la tranformación. Que el 
-        más largo fuese de A-C implicaría que el folio está de frente a la cámara.
-
-        Args:
-            desde_esq ([numpy.ndarray]): Numpy array con las cuatro esquinas actuales
-        """
-        A = desde_esq[0]
-        B = desde_esq[1]
-        C = desde_esq[2]
-        D = desde_esq[3]
-
-        primer_lado = math.sqrt((A[0]-B[0])**2 + (A[1]-B[1])**2)
-        segundo_lado = math.sqrt((A[0]-C[0])**2 + (A[1]-C[1])**2)
+            img ([numpy.ndarray]): Image to transform the perspective.
+            from_points ([numpy.ndarray]): Numpy array with the current four corners.
+            to_points ([numpy.ndarray]): Numpy array with the four corners to be obtained.
         
-        if primer_lado < segundo_lado:
-            return desde_esq
-        else:
-            return np.float32([A, C, B, D])
+        Returns:
+            [numpy.ndarray]: Transformed image.
+        """
+        from_points = DrawingTool.__sort_origin(from_points)
+        M = cv2.getPerspectiveTransform(from_points, to_points)
+        return cv2.warpPerspective(img, M, tamaño)
+
+    def __sort_origin(from_points):
+        """Function that sorts the points so that A is in the top-left corner,
+        B in the top-right corner and C in the bottom-left corner.
+
+        Args:
+            from_points ([numpy.ndarray]): Numpy array with the current four corners.
+
+        Returns:
+            [numpy.ndarray]: Numpy array with the four ordered corners.
+        """
+        d = plg.analyze_distance(from_points)
+        A = d['A']
+        B = d['B']
+        C = d['C']
+        D = d['D']
+        return np.float32([A, B, C, D])

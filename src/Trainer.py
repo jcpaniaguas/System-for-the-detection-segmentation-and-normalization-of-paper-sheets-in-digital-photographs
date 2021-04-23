@@ -1,4 +1,6 @@
 # @author: jcpaniaguas
+from ParallelogramTool import ParallelogramTool as plg
+from SheetLocator import SheetLocator
 import cv2
 import csv
 import pickle
@@ -8,10 +10,10 @@ import math
 
 
 class Trainer:
-    """Clase que necesita de un directorio de imágenes de entrenamiento y archivo groundtruth 
-    con la esquinas reales de cada una de las imágenes (redimensionadas previamente a 1700x1700).
-    El método principal de la clase es entrenar() que iniciará el entrenamiento y creará una base
-    de datos con los keypoints y descriptores válidos de cada imagen. 
+    """Class that needs a directory of training images and groundtruth file with
+    the real corners of each of the images (resized to 1700x1700).
+    The main method of the class is 'train' which will start the training and
+    create a model with the valid keypoints and descriptors of each image.
     """
     
     ORB_EDGE_THRESHOLD = 7
@@ -20,57 +22,55 @@ class Trainer:
     RESIZE = (1700,1700)
 
 
-    def __init__(self, directorio, csv_puntos, rango=-1):
-        """Constructor de la clase Trainer.
+    def __init__(self, directory, groundtruth, range_number=-1):
+        """Trainer class constructor.
 
         Args:
-            directorio ([str]): Directorio de imagenes o lista de imágenes.
-            csv_puntos ([str]): Archivo .csv con las esquinas de cada imagen.
-            rango (int, optional): Número de imágenes del directorio que se 
-            van a entrenar. Por defecto a -1, es decir, se entrenan todas las
-            del directorio.
+            directory ([str]): Image directory or list of images.
+            groundtruth ([str]): .csv file with the corners of each image.
+            rango (int, optional): Number of images in the directory to
+            be trained. Default is -1, i.e. all images in the directory are trained.
         """
-        self.dir = directorio
-        self.rango = rango
-        self.csv_puntos = csv_puntos
+        self.directory = directory
+        self.range_number = range_number
+        self.groundtruth = groundtruth
 
-    def entrenar(self, nombre_bd):
-        """Función principal del entrenamiento. Formará una base de datos de entrenamiento con 
-        los cuatro keypoints y descriptores correspondientes a las esquinas de los folios en las 
-        imágenes de training. El proceso se realizará con una búsqueda de los keypoints correspondientes
-        tras el ecualizado y sucesivas ventanaciones de cada imagen.
+    def train(self, model_name):
+        """Main function of the training. It will create a training model with the
+        four keypoints and descriptors corresponding to the corners of the sheets
+        in the training images. The process will be performed with a search for
+        the corresponding keypoints after closing of each image.
 
         Args:
-            nombre_bd ([str]): Nombre que obtendrá la base de datos de entrenamiento.
-            y se crea la nueva añadiendo los datos nuevos y los anteriores. Por defecto a False.
+            model_name ([str]): Name that the training model will get.
         """
         self.orb = cv2.ORB_create(scaleFactor=self.ORB_SCALE_FACTOR, nlevels=self.ORB_NLEVELS, edgeThreshold=self.ORB_EDGE_THRESHOLD)
-        if not os.path.isdir(self.dir):
-            print("Debe introducir un directorio",self.dir)
+        if not os.path.isdir(self.directory):
+            print("Error: you must enter a directory: ",self.directory)
             return
-        bds = os.listdir('./bd/')
-        if nombre_bd in bds:
-            print("La base de datos a crear lo debe hacer con un nombre nuevo. Ya existe una base de datos con eso nombre.")
+        models = os.listdir('./models/')
+        if model_name in models:
+            print("Error: the model must be created with a new name. A model with this name already exists.")
             return
-        archivos = os.listdir(self.dir)
-        img_entrenadas = "./img/Imagenes_Entrenadas_"+str(self.rango)+".txt"
-        with open(img_entrenadas,'w') as f:
-            for a in archivos[:self.rango]:
-                f.write(a+'\n')
-        self.puntos = self.__cvs_to_dict()
-        bd_validos = self.__fotos_entrenamiento(archivos)
-        self.__guardar_entrenamiento(nombre_bd,bd_validos)
+        files = os.listdir(self.directory)
+        trained_images = "./img/Trained_Images_"+str(self.range_number)+".txt"
+        with open(trained_images,'w') as f:
+            for actual in files[:self.range_number]:
+                f.write(actual+'\n')
+        self.points = self.__cvs_to_dict()
+        valid_data = self.__training_photos(files)
+        self.__save_training(model_name,valid_data)
     
     def __cvs_to_dict(self):
-        """Con un csv como entrada devuelve un diccionario con sus valores tal que la primera columna será la key
-        y las demás los valores.
+        """With a csv as input it returns a dictionary with its values such that
+        the first column will be the key and the others the values.
 
         Returns:
-            [dict([(int,int)])]: Diccionario cuya key es el el nombre de la imagen y cuyos values son los puntos
-            que se consideran esquinas. 
+            [dict([(int,int)])]: Dictionary whose key is the name of the image
+            and whose values are the points that are considered corners. 
         """
         csv_dict = dict()
-        with open(self.csv_puntos) as csv_file:
+        with open(self.groundtruth) as csv_file:
             reader = csv.DictReader(csv_file)
             for row in reader:
                 actual_id = row["id"]
@@ -88,63 +88,64 @@ class Trainer:
 
         return csv_dict
 
-    def __fotos_entrenamiento(self,archivos):
-        """Se van a optener todos los keypoints y descriptores válidos encontrados en cada una de las imagenes de training.
+    def __training_photos(self,images):
+        """All valid keypoints and descriptors found in each of the training images will be obtained.
 
         Args:
-            archivos ([[str]]]): Una lista con los nombres de todas las imagenes de training.
+            images ([[str]]]): A list with the names of all the training images.
 
         Returns:
-            [dict]: Diccionario cuya key es el nombre de cada imagen y value una lista de sus keypoints y descriptores válidos.
+            [dict]: Dictionary whose key is the name of each image and value a list of
+            its keypoints and valid descriptors.
         """
-        bd_validos = dict()
-        self.rango = len(archivos) if self.rango==-1 else self.rango
-        pos_actual = 0
+        valid_data = dict()
+        self.range_number = len(images) if self.range_number==-1 else self.range_number
+        current_position = 0
 
-        while pos_actual!=self.rango:
-            print(pos_actual)
-            archivo = archivos[pos_actual]
-            img = cv2.imread(self.dir + archivo, 0)
+        while current_position!=self.range_number:
+            print(current_position)
+            files = images[current_position]
+            img = cv2.imread(self.directory + files, 0)
             if not (img.shape == self.RESIZE):
                 img = cv2.resize(img,self.RESIZE)
-                print("Imagen redimensionada a ",img.shape)
+                print("Image resized to ",img.shape)
 
             i90 = np.rot90(img)
             i180 = np.rot90(img,2)
             i270 = np.rot90(img,3)
-            iespec = np.fliplr(img)
+            imirror = np.fliplr(img)
             
-            kp_correctos = self.__encontrar_kp(archivo,img)
-            kp_c90 = self.__encontrar_kp(archivo,i90,t=90)
-            kp_c180 = self.__encontrar_kp(archivo,i180,t=180)
-            kp_c270 = self.__encontrar_kp(archivo,i270,t=270)
-            kp_espec = self.__encontrar_kp(archivo,iespec,t=-1)
+            kp_correct = self.__find_kp(files,img)
+            kp_c90 = self.__find_kp(files,i90,turn_point=90)
+            kp_c180 = self.__find_kp(files,i180,turn_point=180)
+            kp_c270 = self.__find_kp(files,i270,turn_point=270)
+            kp_mirror = self.__find_kp(files,imirror,turn_point=-1)
             
-            todos = []
+            all_data = []
 
-            for kp in [kp_correctos,kp_c90,kp_c180,kp_c270,kp_espec]:
-                l = list(kp.values())
-                for kd in l:
-                    todos.append(kd) 
+            for kp in [kp_correct,kp_c90,kp_c180,kp_c270,kp_mirror]:
+                values = list(kp.values())
+                for kd in values:
+                    all_data.append(kd) 
 
-            bd_validos.update({archivo: todos})
-            pos_actual += 1
+            valid_data.update({files: all_data})
+            current_position += 1
 
-        return bd_validos
+        return valid_data
 
-    def __encontrar_kp(self, archivo, img, t=0):
-        """En la imagen actual closing se lleva un proceso de ecualizado y
-        de búsqueda de los keypoints por ventanas (trozos de la imagen orginal)
-        para obtener como resultado los cuatro puntos correspondientes con las
-        esquinas del folio.
+    def __find_kp(self, file_name, img, turn_point=0):
+        """In the current image the closing and search of the keypoints
+        is applied to obtain as a result the four points corresponding to
+        the corners of the sheet.
 
         Args:
-            archivo ([str]): Nombre del archivo actual.
-            img ([numpy.ndarray]): Imagen original en escala de grises.
+            file_name ([str]): Name of the current image.
+            img ([numpy.ndarray]): Original image in grayscale.
+            turn_point (int, optional): The point will be rotated as many degrees as the image is rotated.
+            Defaults to 0.
 
         Returns:
-            [dict]: Diccionario cuya key es una de las cuatro esquinas y value una lista
-            de sus keypoints y descriptores válidos.
+            [dict]: Valid keypoints and descriptors.
         """
         kernel = np.ones((35,35),np.uint8)
         dilation = cv2.dilate(img,kernel,iterations = 1)
@@ -153,101 +154,108 @@ class Trainer:
         kp_list = []   
         kp = self.orb.detect(closing,None)
         kp_list, des_list = self.orb.compute(closing, kp)
-        puntos = {archivo:[(kp.pt[0],kp.pt[1]) for kp in kp_list]}
-        todos = cv2.drawKeypoints(img, kp_list, None, color=(255,0,0), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        nombre = "./img/giros_kp/"+str(t)+"_"+archivo
-        cv2.imwrite(nombre,todos)
-        kp_correctos = dict()
-        return self.__criba(archivo,img,t,kp_list,des_list,kp_correctos)
+        kp_correct = dict()
+        return self.__pruning(file_name,img,turn_point,kp_list,des_list,kp_correct)
 
-    def __criba(self, archivo, img, t, kp, des, kp_correctos):
-        """Criba los keypoints devolviendo los más cercanos a los puntos
-        descritos en el archivo csv_puntos.
+    def __pruning(self, file_name, img, turn_point, kp, des, kp_correct):
+        """Prune the keypoints returning those closest to the points described in the groundtruth file.
 
         Args:
-            archivo ([str]): Nombre del archivo actual.
-            kp ([[Keypoint]]): Keypoints obtenidos del archivo actual.
-            des ([[int]]): Descriptores obtenidos del archivo actual.
-            kp_correctos ([[Keypoint,[int]]]): Si el keypoint es válido se 
-            guarda también su descriptor correspondiente.
+            file_name ([str]): Name of the current image.
+            img ([numpy.ndarray]): Closing image.
+            turn_point ([int]): The point will be rotated as many degrees as the image is rotated.
+            kp ([[Keypoint]]): Keypoints obtained from the current image.
+            des ([[int]]): Descriptors obtained from the current image.
+            kp_correct ([[Keypoint,[int]]]): If the keypoint is valid,
+            its corresponding descriptor is also saved.
 
         Returns:
-            [[Keypoint,[int]]]: Keypoints y descriptores válidos.
+            [[Keypoint,[int]]]: Valid keypoints and descriptors.
         """
-        
-
-        esquinas = self.puntos[archivo]
-        nuevas = []
+        corners = self.points[file_name]
+        news = []
         h,w = img.shape
-        for i,e in enumerate(esquinas):
-            nuevas.append(self.__transf_puntos(e[0],e[1],h,w,t))         
+        for corner in corners:
+            news.append(self.__rotate_points(corner[0],corner[1],h,w,turn_point))         
 
         for i, k in enumerate(kp):
             (kx, ky) = (round(k.pt[0]), round(k.pt[1]))
-            for idx,(img_x, img_y) in enumerate(nuevas):
-                kp_correctos = self.__insertar_mejor(kp_correctos,idx,(img_x,img_y),k,des[i])
-        return kp_correctos
+            for idx,(img_x, img_y) in enumerate(news):
+                kp_correct = self.__insert_best(kp_correct,idx,(img_x,img_y),k,des[i])
+        return kp_correct
 
-    def __insertar_mejor(self,kp_correctos,idx,punto,k,d):
-        """Se seleccionan los mejores keypoints que se acerquen a los puntos del groundtruth.
+    def __insert_best(self,kp_correct,idx,point,k,d):
+        """The best keypoints that are close to the groundtruth points are selected.
 
         Args:
-            kp_correctos ([{Keypoint}]): Diccionario de keypoints de los mejores keypoints.
-            idx ([int]): Numero de la esquina.
-            punto ([(int,int)]): Punto al que acercarse.
-            k ([[Keypoint]]): Keypoint actual.
-            d ([[int]]): Descriptor actual.
+            kp_correct ([{Keypoint}]): Keypoint dictionary of the best keypoints.
+            idx ([int]): Corner number.
+            point ([(int,int)]): Point to approach.
+            k ([[Keypoint]]): Current Keypoint.
+            d ([[int]]): Current descriptor.
 
         Returns:
-            [{Keypoint}]: Diccionario de keypoints de los mejores keypoints.
+            [{Keypoint}]: Keypoint dictionary with the best keypoints.
         """
-        if idx in kp_correctos.keys():
-            actual = kp_correctos[idx][0].pt
-            distancia_act = math.sqrt( ((punto[0]-round(actual[0]))**2)+((punto[1]-round(actual[1]))**2) )
-            distancia_new = math.sqrt( ((punto[0]-round(k.pt[0]))**2)+((punto[1]-round(k.pt[1]))**2) )
-            if distancia_new < distancia_act:
-                kp_correctos[idx] = [k,d]
-            elif distancia_new == distancia_act:
-                if kp_correctos[idx][0].size > k.size:
-                    k_old = kp_correctos[idx][0].size
+        if idx in kp_correct.keys():
+            current = kp_correct[idx][0].pt
+            current_distance = plg.distance(point,(round(current[0]),round(current[1])))
+            new_distance = plg.distance(point,(round(k.pt[0]),round(k.pt[1])))
+            if new_distance < current_distance:
+                kp_correct[idx] = [k,d]
+            elif new_distance == current_distance:
+                if kp_correct[idx][0].size > k.size:
+                    k_old = kp_correct[idx][0].size
                     k_new = k.size
-                    kp_correctos[idx] = [k,d]
+                    kp_correct[idx] = [k,d]
         else:
-            kp_correctos[idx] = [k,d]
-        return kp_correctos
+            kp_correct[idx] = [k,d]
+        return kp_correct
 
-    def __transf_puntos(self,x,y,h,w,t):
-        """Rota los puntos.
+    def __rotate_points(self,x,y,h,w,turn_point):
+        """Rotate the points.
 
         Args:
-            x ([int]): Coordenada X del punto original.
-            y ([int]): Coordenada Y del punto original.
-            h ([int]): Altura de la imagen.
-            w ([int]): Anchura de la imagen.
-            t ([int]): Angulo de rotacion: 90,180,270,-1(especular),diferente(original)
+            x ([int]): X coordinate of the original point.
+            y ([int]): Y coordinate of the original point.
+            h ([int]): Image height.
+            w ([int]): Image width.
+            turn_point ([int]): The point will be rotated as many degrees as the image is rotated.
 
         Returns:
-            [(int,int)]: Punto rotado.
+            [(int,int)]: Rotated point.
         """
-        if t==90:
+        if turn_point==90:
             return (y,h-x)
-        elif t==180:
+        elif turn_point==180:
             return (w-x,h-y)
-        elif t==270:
+        elif turn_point==270:
             return (w-y,x)
-        elif t==-1:
+        elif turn_point==-1:
             return (w-x,y)
         else:
             return (x,y)
 
-
-    def __guardar_entrenamiento(self, nombre, bd):
-        """Se crea la base de datos y se guarda el resultado del entrenamiento.
+    def __save_training(self, model_name, training):
+        """The training result is saved in the new model.
 
         Args:
-            nombre ([str]): Nombre del futuro archivo.
-            bd ([dict()]): Diccionario con la solución.
+            model_name ([str]): Model name.
+            training ([dict()]): Training with keypoints and descriptors.
         """
-        file = open('./bd/'+nombre, "wb")
-        pickle.dump(bd, file)
+        file = open('./models/'+model_name, "wb")
+        pickle.dump(training, file)
         file.close()
+    
+    def get_locator(self,model_name):
+        """Model training is performed if not already done and a
+        SheetLocator object is returned.
+
+        Args:
+            model_name ([str]): Model name.
+
+        Returns:
+            [SheetLocator]: SheetLocator object with the model.
+        """
+        self.train(model_name)
+        return SheetLocator(model_name)

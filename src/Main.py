@@ -3,56 +3,57 @@ from Trainer import Trainer
 from Tester import Tester
 import os
 
-def encontrar_folios(directorio_fotos,numero_de_fotos_training,groundtruth,nombre_bd,porcentaje=False):
-    """Funcion que busca las esquinas de los folios de testing con una base de datos de entrenamiento dada.
-    Si la base de datos no ha sido creada se entrenara y utilizara.
+def find_sheets(photo_directory,number_of_training_photos,groundtruth,model_name,percentage=False):
+    """Function that searches the corners of the testing folios with a given training database.
+    If the database has not been created it will be trained and used.
 
     Args:
-        directorio_fotos ([str]): Directorio donde se encuentran las fotos de los folios a localizar.
-        numero_de_fotos_training ([int]): Del total de fotos del directorio_fotos, el número de fotos que se van a utilizar
-        para training.
-        groundtruth ([str]): Archivo csv con las esquinas de los folios de training.
-        nombre_bd ([str]): Nombre de la base de datos de entrenamiento. Si no existe el archivo se realizara el 
-        entrenamiento. Si existe se utilizará esa base de datos.
-        porcentaje (bool, optional): Si porcentaje es False el parámetro numero_de_fotos_training debera ser
-        un numero entero. Si porcentaje es True el parámetro numero_de_fotos_training debera ser un porcentaje (0-100),
-        el porcentaje de archivos del directorio de fotos que se va a utilizar para training. Por defecto a False.
+        photo_directory ([str]): Directory where you can find the photos of the sheets to be located.
+        number_of_training_photos ([int]): Of the total number of photos in the photo_directory, the number of photos 
+        to be used for training.
+        groundtruth ([str]): Csv file with the corners of the training sheets.
+        model_name ([str]): Name of the training model. If the model does not exist, 
+        the training will be performed. If it exists, this model will be used.
+        percentage (bool, optional): If percentage is False the parameter number_of_training_photos should be
+        an integer. If percentage is True the parameter number_of_training_photos should be a percentage (0-100),
+        the percentage of files in the photo directory to be used for training. Default to False.
     """
-    archivos = os.listdir(directorio_fotos)
-    rango = 0
-    print("Nombre bd: "+nombre_bd)
+    files = os.listdir(photo_directory)
+    range_number = 0
+    print("Model name: "+model_name)
 
-    if not porcentaje:    
-        if numero_de_fotos_training <= len(archivos):
-            tr = str(numero_de_fotos_training)
-            ts = str(len(archivos)-numero_de_fotos_training) 
-            print("training: "+tr+", testing: "+ts)
-            rango = numero_de_fotos_training
+    if not percentage:    
+        if number_of_training_photos <= len(files):
+            tr = str(number_of_training_photos)
+            ts = str(len(files)-number_of_training_photos) 
+            print("Training: "+tr+", Testing: "+ts)
+            range_number = number_of_training_photos
         else:
-            print("Error: 'numero_de_fotos_training' debe ser menor al número de fotos del directorio seleccionado 'directorio_fotos'.")
+            print("Error: 'number_of_training_photos' must be less than the number of photos in the selected directory 'photo_directory'.")
             return 0
     else:
-        if numero_de_fotos_training in range(101):
-            tr = round(len(archivos)*(numero_de_fotos_training/100))
-            ts = len(archivos)-tr
-            rango = round(len(archivos)*(numero_de_fotos_training/100))
-            print("training: "+str(tr)+", testing: "+str(ts))
+        if number_of_training_photos in range_number(101):
+            tr = round(len(files)*(number_of_training_photos/100))
+            ts = len(files)-tr
+            range_number = round(len(files)*(number_of_training_photos/100))
+            print("Training: "+str(tr)+", Testing: "+str(ts))
         else:
-            print("Error: 'numero_de_fotos_training' debe ser un porcentaje comprendido entre [0-100].")
+            print("Error: 'number_of_training_photos' must be a percentage between [0-100].")
         
-    trainer = Trainer(directorio_fotos,groundtruth,rango)
-    trainer.entrenar(nombre_bd)
-    #Guardar = True -> guarda las imagenes; = False -> se muestran en pantalla
-    tester = Tester("./bd/"+nombre_bd,1)
-    dic_result = tester.localizar(directorio_fotos)
-    return dic_result
+    trainer = Trainer(photo_directory,groundtruth,range_number)
+    trainer.train(model_name)
+    tester = Tester("./models/"+model_name,save=1)
+    sheets = tester.locate(photo_directory)
+    for sheet in sheets:
+        sheet.show_sheet()
+    return sheets
 
-DIR_FOTOS = "./img/redim/"
-fotos = len(os.listdir(DIR_FOTOS))
+PHOTO_DIR = "./img/redim/"
+photos = len(os.listdir(PHOTO_DIR))
 groundtruth = "./img/groundtruth_redim_tipo_0.csv"
 
 for i in [28]:
-    encontrar_folios(directorio_fotos=DIR_FOTOS,
+    find_sheets(photo_directory=PHOTO_DIR,
                     groundtruth=groundtruth,
-                    numero_de_fotos_training=i,
-                    nombre_bd="bd_train_"+str(i)+"_test_"+str(fotos-i)+"_closing_tr_pequenos.pkl")
+                    number_of_training_photos=i,
+                    model_name="train_"+str(i)+"_test_"+str(photos-i)+".pkl")
