@@ -23,12 +23,20 @@ class SheetLocator:
     ANG_MIN = 60
 
     def __init__(self, model="./models/train_28_test_14.pkl"):
-        """Class constructor method.
+        """Class constructor without a trained model.
 
         Args:
-            model (str, optional): Trained model to be used. Defaults to "./models/train_28_test_14.pkl".
+            model (str, optional): Trained model of type dictionary
+            or name of the model to be trained.
+            Defaults to "./models/train_28_test_14.pkl".
         """
-        self.__load_model(model)
+        if type(model)==str:
+            self.__load_model(model)
+        elif type(model)==dict:
+            self.model_name = "./models/train_28_test_14.pkl"
+            self.training = model
+        else:
+            print("Error: the parameter 'model' must be of type string or SheetLocator.")
 
     def __load_model(self, model):
         """Method that is used by the builder to load a previously trained model.
@@ -36,10 +44,10 @@ class SheetLocator:
         Args:
             model ([str]): Trained model to be used.
         """
-        self.model = model
-        archivo = open(model, 'rb')
-        self.training = pickle.load(archivo)
-        archivo.close()
+        self.model_name = model
+        current_file = open(model, 'rb')
+        self.training = pickle.load(current_file)
+        current_file.close()
 
     def locate(self, file_name, image, save=0):
         """Function that locates the sheet in the given image.
@@ -101,7 +109,7 @@ class SheetLocator:
         kp_list, des_list = self.orb.compute(closing, kp)
         all_image = cv2.drawKeypoints(original, kp_list, None, color=(255,0,0), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         
-        spl = self.model.split('_')
+        spl = self.model_name.split('_')
         file_trained = self.__trained_file(file_name,spl[1])
         test_name = spl[1]+"/"+spl[3].split('.')[0]+"_"+file_name
         trained_test_name = spl[1]+"/Trained/"+spl[3].split('.')[0]+"_"+file_name
@@ -391,3 +399,17 @@ class SheetLocator:
             current_points[3] = nearby
 
         return True,current_points
+    
+    def save_training(self, model_name):
+        """The model can be saved if it has been trained.
+
+        Args:
+            model_name ([str]): Name under which the model will be saved.
+        """
+        if self.training:
+            print("Saving model: ",model_name)
+            file = open(model_name, "wb")
+            pickle.dump(self.training, file)
+            file.close()
+        else:
+            print("Error: no model has been trained.")

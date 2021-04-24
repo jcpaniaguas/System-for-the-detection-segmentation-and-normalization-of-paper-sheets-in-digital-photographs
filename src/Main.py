@@ -1,6 +1,7 @@
 # @author: jcpaniaguas
 from Trainer import Trainer
 from Tester import Tester
+from SheetLocator import SheetLocator
 import os
 
 def find_sheets(photo_directory,number_of_training_photos,groundtruth,model_name,percentage=False):
@@ -41,19 +42,21 @@ def find_sheets(photo_directory,number_of_training_photos,groundtruth,model_name
             print("Error: 'number_of_training_photos' must be a percentage between [0-100].")
         
     trainer = Trainer(photo_directory,groundtruth,range_number)
-    trainer.train(model_name)
-    tester = Tester("./models/"+model_name,save=1)
+    sheet_locator = trainer.train()
+    tester = Tester(save=1)
+    tester.set_locator(sheet_locator)
     sheets = tester.locate(photo_directory)
+    sheet_locator.save_training(model_name)
     for sheet in sheets:
         sheet.show_sheet()
     return sheets
 
 PHOTO_DIR = "./img/redim/"
 photos = len(os.listdir(PHOTO_DIR))
-groundtruth = "./img/groundtruth_redim_tipo_0.csv"
+groundtruth = "./img/groundtruth.csv"
 
 for i in [28]:
     find_sheets(photo_directory=PHOTO_DIR,
                     groundtruth=groundtruth,
                     number_of_training_photos=i,
-                    model_name="train_"+str(i)+"_test_"+str(photos-i)+".pkl")
+                    model_name="./models/train_"+str(i)+"_test_"+str(photos-i)+".pkl")

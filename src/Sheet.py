@@ -1,5 +1,6 @@
 # @author: jcpaniaguas
 from DrawingTool import DrawingTool as dt
+from ParallelogramTool import ParallelogramTool as plg
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -8,7 +9,7 @@ class Sheet:
     """Sheet class.
     """
 
-    def __init__(self,name,original,A,B,C,D,size=(1700,1700)):
+    def __init__(self,name,original,A,B,C,D,size=(2900,2100)):
         """Sheet class initializer.
 
         Args:
@@ -59,7 +60,7 @@ class Sheet:
             [numpy.ndarray]: Found sheet.
         """
         image = self.original_image
-        from_c = np.array([self.A,self.B,self.C,self.D])
         width, height = self.size
-        to_c = np.float32([[0,0],[0,height],[width,0],[width,height]])
+        from_c = np.array([self.A,self.B,self.C,self.D])
+        to_c = np.float32([[0,0],[width,0],[0,height],[width,height]])
         return dt. transform_perspective(image,from_c,to_c,self.size)

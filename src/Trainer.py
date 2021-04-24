@@ -34,32 +34,30 @@ class Trainer:
         self.directory = directory
         self.range_number = range_number
         self.groundtruth = groundtruth
+        self.training = None
 
-    def train(self, model_name):
+    def train(self):
         """Main function of the training. It will create a training model with the
         four keypoints and descriptors corresponding to the corners of the sheets
         in the training images. The process will be performed with a search for
         the corresponding keypoints after closing of each image.
-
-        Args:
-            model_name ([str]): Name that the training model will get.
+        
+        Returns:
+            [SheetLocator]: SheetLocator with trained model. 
         """
         self.orb = cv2.ORB_create(scaleFactor=self.ORB_SCALE_FACTOR, nlevels=self.ORB_NLEVELS, edgeThreshold=self.ORB_EDGE_THRESHOLD)
         if not os.path.isdir(self.directory):
             print("Error: you must enter a directory: ",self.directory)
             return
         models = os.listdir('./models/')
-        if model_name in models:
-            print("Error: the model must be created with a new name. A model with this name already exists.")
-            return
         files = os.listdir(self.directory)
         trained_images = "./img/Trained_Images_"+str(self.range_number)+".txt"
         with open(trained_images,'w') as f:
             for actual in files[:self.range_number]:
                 f.write(actual+'\n')
         self.points = self.__cvs_to_dict()
-        valid_data = self.__training_photos(files)
-        self.__save_training(model_name,valid_data)
+        self.training = self.__training_photos(files)
+        return SheetLocator(self.training)
     
     def __cvs_to_dict(self):
         """With a csv as input it returns a dictionary with its values such that
@@ -235,27 +233,3 @@ class Trainer:
             return (w-x,y)
         else:
             return (x,y)
-
-    def __save_training(self, model_name, training):
-        """The training result is saved in the new model.
-
-        Args:
-            model_name ([str]): Model name.
-            training ([dict()]): Training with keypoints and descriptors.
-        """
-        file = open('./models/'+model_name, "wb")
-        pickle.dump(training, file)
-        file.close()
-    
-    def get_locator(self,model_name):
-        """Model training is performed if not already done and a
-        SheetLocator object is returned.
-
-        Args:
-            model_name ([str]): Model name.
-
-        Returns:
-            [SheetLocator]: SheetLocator object with the model.
-        """
-        self.train(model_name)
-        return SheetLocator(model_name)
