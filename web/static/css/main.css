@@ -1,0 +1,93 @@
+body {
+    background: #4286f4;
+}
+
+input {
+    max-width: 250px;
+}
+
+*{margin: 0; padding: 0;}
+.box {
+    width: 80%;
+    display: contents;
+    flex-flow: column wrap;
+    justify-content: center;
+    align-items: center;
+    background: #333944;
+}
+.sub-box {
+    width: 100%;
+    height: 300px;
+    background: #CCC;
+    overflow: hidden;
+}
+
+.sub-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    object-position: center center;
+}
+
+.cont {
+    display: grid;
+    grid-template-columns: 30% 30% 30%;
+    grid-gap: 50px;
+    justify-content: center;
+    padding: 1.5rem !important;
+    min-width: 1500px;
+    height: 800px;
+}
+
+.column-box {
+    padding: 20px !important;
+    background-color: #f8f9fa !important;
+    border-radius: .3rem !important;
+}
+
+.content-box {
+    width: 100%;
+    padding-right: var(--bs-gutter-x,.75rem);
+    padding-left: var(--bs-gutter-x,.75rem);
+    margin-right: auto;
+    margin-left: auto;
+    padding-top: 3rem !important;
+    padding-bottom: 2rem !important;
+    height: 350px;
+}
+
+.title {
+    font-size: calc(1.425rem + 2.1vw);
+    line-height: 1.2;
+    font-weight: 700 !important;
+}
+
+.desc-box {
+    font-size: calc(1.275rem + .3vw) !important;
+}
+
+.form-button {
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    user-select: none;
+    border: 1px solid transparent;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 0.15s, 0.15s, 0.15s, 0.15s;
+    transition-timing-function: ease-in-out, ease-in-out, ease-in-out, ease-in-out;
+    transition-delay: 0s, 0s, 0s, 0s;
+    color: #fff;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    padding: .5rem 1rem;
+    font-size: 1.25rem;
+    border-radius: .3rem;
+}
+
+.info-message {
+    padding-top: 1em;
+}

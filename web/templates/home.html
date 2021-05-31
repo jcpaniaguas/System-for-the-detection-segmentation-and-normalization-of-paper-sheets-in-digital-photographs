@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="cont">
+
+    <!--Step 1-->
+    <div class="column-box">
+        <div class="content-box">
+            <h1 class="title">Sheet Locator</h1>
+            <p class="desc-box">Step 1: select one image that has sheet in it.</p>
+            
+            <!--Form to upload image-->
+            <form action="/" method="POST" enctype="multipart/form-data">
+                <input type="file" name="file" accept="image/*" required/>
+                <input type="submit" class="form-button" value="Step 1"/>
+            </form>
+
+            <!--Error and info messages-->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="info-message">
+                            <p>{{ message }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>   
+
+        <!--Display image-->
+        {% if image_name %}
+            <div class="box">
+                <div class="sub-box">
+                    <img src="{{ url_for('display_image', filename=image_name) }}" alt="Loading image...">
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!--Step 2-->
+    <div class="column-box">
+        <div class="content-box">
+            <h1 class="title">Step 2</h1>
+            <p class="desc-box">Step 2: visualize the result.</p>
+        </div>    
+        <!--Display image-->
+        {% if corner_image %}
+            <div class="box">
+                <div class="sub-box">
+                    <img src="{{ url_for('display_image', filename=corner_image) }}" alt="Loading image...">
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!--Step 3-->
+    <div class="column-box">
+        <div class="content-box">
+            <h1 class="title">Step 3</h1>
+            <p class="desc-box">Step 3: transform to sheet.</p>
+        </div>
+        <!--Display image-->
+        {% if sheet %}
+            <div class="box">
+                <div class="sub-box">
+                    <!--<img src="{{ url_for('display_image', filename=sheet) }}" alt="Loading image...">-->
+                    <img src="{{ url_for('display_image', filename=sheet) }}" alt="Loading image...">
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
