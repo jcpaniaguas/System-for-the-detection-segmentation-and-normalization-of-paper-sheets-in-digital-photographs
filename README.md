@@ -1,18 +1,14 @@
-# Sistema para la deteccion, segmentacion y normalizacion de hojas de papel en fotografias digitales
+# System for detection, segmentation and normalization of sheets of paper in digital photographs
 
-Descripción: 
-El sistema es capaz de, con una fotografía inicial, encontrar un folio y pasar su contenido de tridimensional a bidimensional. 
+In this project we try, given an image of a sheet of paper, to locate and cut out the sheet by locating with a trained model its corners.
 
-Para la ejecución:
+The directories are described below according to their use:
 
-0- El clase Src/Entrenador.py se utiliza para que el usuario busque los keypoints de la imagen correspondientes con esquinas. Sólo se ejecuta (por ahora) en el directorio dirFotos/unPapel/fondoDiferente/camaraMovil/cerca/ y sólo utiliza las tres primeras fotos para minimizar el problema. El resultado es guardado en Src/para_match.pkl con pickle, por lo que, al estar ya hecho, no es necesario ejecutar el fichero (Src/Entrenador.py).
-
-1- Ejecutar el fichero Src/match.py. Este va a buscar las esquinas que pueden ser bordes de una foto de la carpeta Muestra y encontrar coincidencias con el entrenamiento almacenado en Src/para_match.pkl hasta dibujar los bordes del folio. La imagen utilizada es una de las tres que participan en el entrenamiento.
-
-Mejoras:
-
-1- Diferenciar la muestra para que las imagenes de entrenamiento (dirFotos) y de prueba (Muestra) no sean las mismas
-
-2- Ampliar el algoritmo para que estime donde pueden estar las esquinas en el caso de que encuentre <4 esquinas correctas
-
-3- El algoritmo tarda en dibujar las lineas (a mayor número de kp_postcriba más tarda), ¿puede haber una mejor manera de encontrar las líneas válidas?
+* img: directory of images used in the project:
+  * kp_circle: all keypoints that have been found in the training images are displayed.
+  * match_circle: all matches that have been found in the training images are displayed.
+  * redim: original images resized to 1700x1700 and used in training and testing.
+  * sol_circle: result with the 4 corners found on the sheets.
+* models: the result of training, a model trained with 28 images and tested with 14.
+* src: main code of the detector properly commented to select the classes you need to use. 
+* web: web application code that makes use of the main classes in the 'src' directory.
