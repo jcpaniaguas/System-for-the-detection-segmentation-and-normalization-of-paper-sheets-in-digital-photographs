@@ -11,4 +11,4 @@ The directories are described below according to their use:
   * sol_circle: result with the 4 corners found on the sheets.
 * models: the result of training, a model trained with 28 images and tested with 14.
 * src: main code of the detector properly commented to select the classes you need to use. 
-* web: web application code that makes use of the main classes in the 'src' directory.
+* web: web application code that makes use of the main classes in the 'src' directory (Python, Flask, HTML, CSS).
