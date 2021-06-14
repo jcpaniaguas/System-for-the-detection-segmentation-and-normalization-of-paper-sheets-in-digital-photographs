@@ -9,7 +9,7 @@ class DrawingTool:
     """
 
     @staticmethod
-    def draw_points(points, img, radio=20,thickness=1,color=(255,0,0)):
+    def draw_points(points, img, radio=20,thickness=100,color=(0,0,255)):
         """Draw the points on the image.
 
         Args:
@@ -21,6 +21,7 @@ class DrawingTool:
             [numpy.ndarray]: Image with points drawn.
         """
         img_copy = img.copy()
+        img_copy = cv2.cvtColor(img_copy,cv2.COLOR_GRAY2RGB)
         for x, y in points:
             img_copy = cv2.circle(img_copy,(int(x),int(y)), radius=radio, thickness=thickness, color=color)
         return img_copy
