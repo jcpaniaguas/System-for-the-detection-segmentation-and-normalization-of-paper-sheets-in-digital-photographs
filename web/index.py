@@ -4,6 +4,7 @@ import sys
 import os
 import urllib.request
 import cv2
+import tempfile
 from werkzeug.utils import secure_filename
 sys.path.insert(1,'./src')
 from SheetLocator import SheetLocator as locator
@@ -34,8 +35,16 @@ def upload_image():
     if file.filename == '':
         flash('No image selected for uploading')
         return redirect(request.url)
+    
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
+        # delete old images
+        images = os.listdir(app.config['UPLOAD_FOLDER'])
+        for delete_image in images:
+            delete_path = os.path.join(app.config['UPLOAD_FOLDER'],delete_image)
+            if os.path.isfile(delete_path) or os.path.islink(delete_path):
+                os.unlink(delete_path)
+                print('Image delete:',delete_path)
         # save original image
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         # load original image
