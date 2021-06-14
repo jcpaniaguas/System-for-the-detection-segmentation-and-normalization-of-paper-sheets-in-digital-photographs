@@ -33,7 +33,7 @@ def find_sheets(photo_directory,number_of_training_photos,groundtruth,model_name
             print("Error: 'number_of_training_photos' must be less than the number of photos in the selected directory 'photo_directory'.")
             return 0
     else:
-        if number_of_training_photos in range_number(101):
+        if number_of_training_photos in range(101):
             tr = round(len(files)*(number_of_training_photos/100))
             ts = len(files)-tr
             range_number = round(len(files)*(number_of_training_photos/100))
