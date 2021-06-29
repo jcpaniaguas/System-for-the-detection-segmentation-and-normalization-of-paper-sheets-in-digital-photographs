@@ -37,6 +37,15 @@ class Sheet:
         plt.imshow(image,cmap='gray')
         plt.show()
     
+    def show_corner_image(self):
+        """show the image with the corners drawn.
+        """
+        image = self.get_image()
+        corner_image = dt.draw_points([self.A,self.B,self.C,self.D],image)
+        plt.figure(figsize = (8,8))
+        plt.imshow(corner_image,cmap='gray')
+        plt.show()
+
     def show_sheet(self):
         """Shows the sheet found in the image. It will be shown with the transformed perspective.
         """
@@ -49,9 +58,19 @@ class Sheet:
         """Obtain the original image.
 
         Returns:
-            [numpy.ndarray]: Original image.
+            [numpy.ndarray]: Image with the corners drawn.
         """
         return self.original_image
+
+    def get_corner_image(self):
+        """Obtain the image with the corners drawn.
+
+        Returns:
+            [numpy.ndarray]: Original image.
+        """
+        image = self.get_image()
+        corner_image = dt.draw_points([self.A,self.B,self.C,self.D],image)
+        return corner_image
 
     def get_sheet(self):
         """Get the sheet found in the image. It will be transformed from perspective to 2D.

@@ -57,6 +57,7 @@ groundtruth = "./img/groundtruth.csv"
 
 for i in [28]:
     find_sheets(photo_directory=PHOTO_DIR,
+                    percentage=True,
                     groundtruth=groundtruth,
-                    number_of_training_photos=i,
+                    number_of_training_photos=33,
                     model_name="./models/train_"+str(i)+"_test_"+str(photos-i)+".pkl")

@@ -7,12 +7,12 @@
     <div class="column-box">
         <div class="content-box">
             <h1 class="title">Sheet Locator</h1>
-            <p class="desc-box">Step 1: select one image that has sheet in it.</p>
+            <p class="desc-box">1. Select one image that has sheet in it.</p>
             
             <!--Form to upload image-->
             <form action="/" method="POST" enctype="multipart/form-data">
                 <input type="file" name="file" accept="image/*" required/>
-                <input type="submit" class="form-button" value="Step 1"/>
+                <input type="submit" class="form-button" value="Search"/>
             </form>
 
             <!--Error and info messages-->
@@ -40,8 +40,8 @@
     <!--Step 2-->
     <div class="column-box">
         <div class="content-box">
-            <h1 class="title">Step 2</h1>
-            <p class="desc-box">Step 2: visualize the result.</p>
+            <h1 class="title">Visualize the result.</h1>
+            <p class="desc-box">2. These are the results of where the algorithm locates corners.</p>
         </div>    
         <!--Display image-->
         {% if corner_image %}
@@ -56,13 +56,14 @@
     <!--Step 3-->
     <div class="column-box">
         <div class="content-box">
-            <h1 class="title">Step 3</h1>
-            <p class="desc-box">Step 3: transform to sheet.</p>
+            <h1 class="title">Transform to sheet.</h1>
+            <p class="desc-box">3. The result of the sheet clipped at the corners is shown.</p>
         </div>
         <!--Display image-->
         {% if sheet %}
             <div class="box">
                 <div class="sub-box">
+                    <!--<img src="{{ url_for('display_image', filename=sheet) }}" alt="Loading image...">-->
                     <img src="{{ url_for('display_image', filename=sheet) }}" alt="Loading image...">
                 </div>
             </div>

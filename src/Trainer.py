@@ -28,7 +28,7 @@ class Trainer:
         Args:
             directory ([str]): Image directory or list of images.
             groundtruth ([str]): .csv file with the corners of each image.
-            rango (int, optional): Number of images in the directory to
+            range_number (int, optional): Number of images in the directory to
             be trained. Default is -1, i.e. all images in the directory are trained.
         """
         self.directory = directory

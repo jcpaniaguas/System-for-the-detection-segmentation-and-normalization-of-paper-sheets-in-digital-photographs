@@ -1,4 +1,3 @@
-# @author: jcpaniaguas
 import math
 
 

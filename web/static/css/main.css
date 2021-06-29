@@ -57,7 +57,6 @@ input {
 }
 
 .title {
-    font-size: calc(1.425rem + 2.1vw);
     line-height: 1.2;
     font-weight: 700 !important;
 }
@@ -90,4 +89,21 @@ input {
 
 .info-message {
     padding-top: 1em;
+}
+
+.social-icons .social-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    background-color: #b3bbc8;
+    color: #514545;
+    border-radius: 100%;
+    font-size: 1.5rem;
+    margin-right: 1.5rem;
+}
+
+.closer {
+    margin-bottom: 0.75rem !important;
 }
